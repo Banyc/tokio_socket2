@@ -117,7 +117,7 @@ mod tests {
 
         eprintln!("Client read");
 
-        assert_eq!(&buf, b"pong");
+        assert_eq!(&buf[..4], b"pong");
 
         Ok(())
     }
