@@ -52,3 +52,72 @@ impl TokioSocket2 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::mem::MaybeUninit;
+    use std::{ io, mem };
+    use std::net::SocketAddr;
+
+    use socket2::{ Domain, Protocol, Socket, Type };
+    use tokio::{ net::TcpStream, io::{ AsyncReadExt, AsyncWriteExt } };
+
+    use super::TokioSocket2;
+
+    #[tokio::test]
+    async fn test() -> io::Result<()> {
+        let socket = Socket::new(Domain::IPV4, Type::STREAM, Some(Protocol::TCP))?;
+        socket.set_nonblocking(true)?;
+        socket.set_reuse_address(true)?;
+        socket.bind(&SocketAddr::from(([127, 0, 0, 1], 0)).into())?;
+        socket.listen(1)?;
+
+        let listener = TokioSocket2::new(socket)?;
+
+        eprintln!("Listener");
+
+        let addr = listener.get_ref().local_addr()?;
+        let addr = addr.as_socket().unwrap();
+
+        let mut client = TcpStream::connect(addr).await?;
+
+        eprintln!("Client");
+
+        let (server, _) = listener.read(|socket| socket.accept()).await?;
+        let server = TokioSocket2::new(server)?;
+
+        eprintln!("Server");
+
+        client.write_all(b"ping").await?;
+
+        eprintln!("Client write");
+
+        let mut buf = [0; 4];
+        let mut pos = 0;
+
+        while pos < 4 {
+            let n = server.read(|socket| {
+                let buf = unsafe { mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(&mut buf) };
+                socket.recv(buf)
+            }).await?;
+
+            pos += n;
+        }
+
+        eprintln!("Server read");
+
+        assert_eq!(&buf[..4], b"ping");
+
+        server.write(|socket| socket.send(b"pong")).await?;
+
+        eprintln!("Server write");
+
+        client.read_exact(&mut buf).await?;
+
+        eprintln!("Client read");
+
+        assert_eq!(&buf, b"pong");
+
+        Ok(())
+    }
+}
