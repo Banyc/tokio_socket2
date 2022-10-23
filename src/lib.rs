@@ -113,7 +113,7 @@ mod tests {
 
         eprintln!("Server write");
 
-        client.read_exact(&mut buf).await?;
+        client.read_exact(&mut buf[..4]).await?;
 
         eprintln!("Client read");
 

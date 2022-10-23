@@ -40,7 +40,7 @@ assert_eq!(&buf[..4], b"ping");
 
 server.write(|socket| socket.send(b"pong")).await?;
 
-client.read_exact(&mut buf).await?;
+client.read_exact(&mut buf[..4]).await?;
 
-assert_eq!(&buf, b"pong");
+assert_eq!(&buf[..4], b"pong");
 ```
