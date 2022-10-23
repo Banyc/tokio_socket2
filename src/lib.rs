@@ -66,25 +66,24 @@ mod tests {
 
     #[tokio::test]
     async fn test() -> io::Result<()> {
-        let socket = Socket::new(Domain::IPV4, Type::STREAM, Some(Protocol::TCP))?;
-        socket.set_nonblocking(true)?;
-        socket.set_reuse_address(true)?;
-        socket.bind(&SocketAddr::from(([127, 0, 0, 1], 0)).into())?;
-        socket.listen(1)?;
+        let listen_socket = Socket::new(Domain::IPV4, Type::STREAM, Some(Protocol::TCP))?;
+        listen_socket.set_nonblocking(true)?;
+        listen_socket.set_reuse_address(true)?;
+        listen_socket.bind(&SocketAddr::from(([127, 0, 0, 1], 0)).into())?;
+        listen_socket.listen(1)?;
 
-        let listener = TokioSocket2::new(socket)?;
+        let listener = TokioSocket2::new(listen_socket)?;
 
         eprintln!("Listener");
 
-        let addr = listener.get_ref().local_addr()?;
-        let addr = addr.as_socket().unwrap();
+        let listen_addr = listener.get_ref().local_addr()?.as_socket().unwrap();
 
-        let mut client = TcpStream::connect(addr).await?;
+        let mut client = TcpStream::connect(listen_addr).await?;
 
         eprintln!("Client");
 
-        let (server, _) = listener.read(|socket| socket.accept()).await?;
-        let server = TokioSocket2::new(server)?;
+        let (server_socket, _) = listener.read(|socket| socket.accept()).await?;
+        let server = TokioSocket2::new(server_socket)?;
 
         eprintln!("Server");
 
