@@ -97,7 +97,9 @@ mod tests {
 
         while pos < 4 {
             let n = server.read(|socket| {
-                let buf = unsafe { mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(&mut buf) };
+                let buf = unsafe {
+                    mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(&mut buf[pos..])
+                };
                 socket.recv(buf)
             }).await?;
 
