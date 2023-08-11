@@ -18,7 +18,7 @@ impl TokioSocket2 {
 
     pub async fn read<F: FnMut(&socket2::Socket) -> io::Result<R>, R>(
         &self,
-        mut f: F
+        mut f: F,
     ) -> io::Result<R> {
         loop {
             let mut guard = self.io.readable().await?;
@@ -36,7 +36,7 @@ impl TokioSocket2 {
 
     pub async fn write<F: FnMut(&socket2::Socket) -> io::Result<R>, R>(
         &self,
-        mut f: F
+        mut f: F,
     ) -> io::Result<R> {
         loop {
             let mut guard = self.io.writable().await?;
@@ -56,11 +56,14 @@ impl TokioSocket2 {
 #[cfg(test)]
 mod tests {
     use std::mem::MaybeUninit;
-    use std::{ io, mem };
     use std::net::SocketAddr;
+    use std::{io, mem};
 
-    use socket2::{ Domain, Protocol, Socket, Type };
-    use tokio::{ net::TcpStream, io::{ AsyncReadExt, AsyncWriteExt } };
+    use socket2::{Domain, Protocol, Socket, Type};
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpStream,
+    };
 
     use super::TokioSocket2;
 
@@ -95,12 +98,14 @@ mod tests {
         let mut pos = 0;
 
         while pos < 4 {
-            let n = server.read(|socket| {
-                let buf = unsafe {
-                    mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(&mut buf[pos..])
-                };
-                socket.recv(buf)
-            }).await?;
+            let n = server
+                .read(|socket| {
+                    let buf = unsafe {
+                        mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(&mut buf[pos..])
+                    };
+                    socket.recv(buf)
+                })
+                .await?;
 
             pos += n;
         }
